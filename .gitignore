@@ -5,8 +5,10 @@ env/
 venv/
 *.sqlite3
 .env
+*.env
 
 # Node / React
 node_modules/
 dist/
 .env.local
+

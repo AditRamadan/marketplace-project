@@ -2,10 +2,10 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.views import RegisterView, ActivateSellerView
-from products.views import ProductListCreateView, ProductDetailView
+from accounts.views import RegisterView, ActivateSellerView, GoogleLoginView, CustomTokenObtainPairView
+from products.views import ProductListCreateView, ProductDetailView, CategoryListView, SellerProductListView, PublicStoreDetailView
 from orders.views import CheckoutView, CartView, SellerOrderListView, ProcessShippingView
 from payments.views import CreatePaymentView, MidtransWebhookView, UploadPaymentProofView, ReviewPaymentProofView
 
@@ -14,13 +14,17 @@ urlpatterns = [
 
     # Auth
     path('api/auth/register/', RegisterView.as_view()),
-    path('api/auth/login/', TokenObtainPairView.as_view()),
+    path('api/auth/login/', CustomTokenObtainPairView.as_view()),
     path('api/auth/refresh/', TokenRefreshView.as_view()),
     path('api/auth/activate-seller/', ActivateSellerView.as_view()),
+    path('api/auth/google/', GoogleLoginView.as_view(), name='google_login'),
 
-    # Products
+    # Products & Categories
+    path('api/categories/', CategoryListView.as_view()),
     path('api/products/', ProductListCreateView.as_view()),
     path('api/products/<int:pk>/', ProductDetailView.as_view()),
+    path('api/seller/products/', SellerProductListView.as_view()), # <-- Endpoint Produk Seller
+    path('api/stores/<int:seller_id>/', PublicStoreDetailView.as_view()),
 
     # Cart & Checkout
     path('api/cart/', CartView.as_view()),

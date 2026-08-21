@@ -1,11 +1,15 @@
-from django.db import transaction
-from django.utils import timezone
-from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
+from django.db import transaction
+from django.utils import timezone
+from datetime import timedelta
+
+# Impor Model & Serializers
+from .models import Cart, CartItem, MasterOrder, SellerOrder, OrderItem, Shipping, StockReservation
+from .serializers import SellerOrderSerializer
 from products.models import Product
-from .models import Cart, CartItem, MasterOrder, SellerOrder, OrderItem, StockReservation
+from activity.utils import log_activity
 
 class CheckoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -112,39 +116,70 @@ class CartView(APIView):
                 'product_name': item.product.name,
                 'price': item.product.price,
                 'quantity': item.quantity,
+                'product_stock': item.product.stock,
                 'subtotal': item.product.price * item.quantity
             })
 
         return Response(list(grouped_items.values()))
 
+    # PERBAIKAN: Masukkan post() ke dalam class CartView (tambah indentasi)
     def post(self, request):
         product_id = request.data.get('product_id')
-        quantity = int(request.data.get('quantity', 1))
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (ValueError, TypeError):
+            return Response({'error': 'Jumlah/quantity tidak valid.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not product_id:
+            return Response({'error': 'product_id wajib diisi.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            product = Product.objects.get(id=product_id, is_active=True)
+            product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
-            return Response({'error': 'Produk tidak ditemukan'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Produk tidak ditemukan.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # BR-03: Seller tidak boleh membeli produk miliknya sendiri
+        # 1. Validasi: Seller tidak boleh membeli produk sendiri
         if product.seller == request.user:
-            return Response({'error': 'Anda tidak bisa menambahkan produk milik sendiri ke keranjang'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'Anda tidak bisa menambahkan produk milik sendiri ke keranjang.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+        cart_item = CartItem.objects.filter(cart=cart, product=product).first()
 
-        if not created:
-            cart_item.quantity += quantity
+        # Hitung akumulasi barang yang SUDAH ADA di keranjang
+        existing_qty = cart_item.quantity if cart_item else 0
+        total_requested_qty = existing_qty + quantity
+
+        # 2. Validasi: Akumulasi total tidak boleh melebihi stok barang yang ada
+        if total_requested_qty > product.stock:
+            sisa_bisa_ditambah = product.stock - existing_qty
+            if existing_qty > 0:
+                return Response({
+                    'error': f'Stok tidak mencukupi. Anda sudah memiliki {existing_qty} item di keranjang. Maksimal bisa menambah {sisa_bisa_ditambah} item lagi (Stok toko: {product.stock}).'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'error': f'Jumlah melebihi stok yang tersedia ({product.stock} pcs).'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Simpan/update kuantitas keranjang
+        if cart_item:
+            cart_item.quantity = total_requested_qty
+            cart_item.save()
         else:
-            cart_item.quantity = quantity
-        cart_item.save()
+            cart_item = CartItem.objects.create(cart=cart, product=product, quantity=quantity)
 
-        # Log Activity
+        # Log Aktivitas
         log_activity(request.user, 'ADD_TO_CART', {'product_id': product.id, 'quantity': quantity})
 
-        return Response({'message': 'Produk berhasil ditambahkan ke keranjang'})
+        return Response({'message': 'Produk berhasil ditambahkan ke keranjang.'}, status=status.HTTP_200_OK)
 
-    def delete(self, request, item_id):
+    # PERBAIKAN: Masukkan delete() ke dalam class CartView (tambah indentasi)
+    def delete(self, request, item_id=None):
+        if not item_id:
+            return Response({'error': 'ID item keranjang diperlukan'}, status=status.HTTP_400_BAD_REQUEST)
         CartItem.objects.filter(id=item_id, cart__user=request.user).delete()
         return Response({'message': 'Item berhasil dihapus dari keranjang'})
 

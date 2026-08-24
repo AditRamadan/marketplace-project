@@ -7,6 +7,7 @@ import {
   Search,
   Store,
   ChevronDown,
+  Package,
 } from "lucide-react";
 
 export default function Navbar({
@@ -14,23 +15,20 @@ export default function Navbar({
   onLogout,
   onNavigateToSeller,
   onOpenCart,
+  onOpenOrders, // <-- Added prop
   cartCount = 0,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  // Cek apakah user ber-role Seller
   const isSeller = user?.is_seller || user?.role === "seller";
 
   return (
     <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer">
             <span className="text-2xl font-bold text-blue-600">TokoKita</span>
           </div>
 
-          {/* Search Bar */}
           <div className="flex-1 max-w-md mx-8">
             <div className="relative">
               <input
@@ -42,11 +40,9 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* Menu Kanan */}
           <div className="flex items-center gap-6">
-            {/* Keranjang Belanja */}
             <button
-              onClick={onOpenCart} // <-- Klik keranjang memanggil handler
+              onClick={onOpenCart}
               className="relative p-2 text-gray-600 hover:text-blue-600 transition"
             >
               <ShoppingCart className="h-6 w-6" />
@@ -57,7 +53,6 @@ export default function Navbar({
               )}
             </button>
 
-            {/* Menu Profil / User Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -72,7 +67,6 @@ export default function Navbar({
                 <ChevronDown className="h-4 w-4 text-gray-500" />
               </button>
 
-              {/* Dropdown Content */}
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border py-2 z-50">
                   <div className="px-4 py-2 border-b">
@@ -91,7 +85,18 @@ export default function Navbar({
                     </span>
                   </div>
 
-                  {/* TOMBOL TOKO SAYA: Hanya muncul untuk ROLE SELLER */}
+                  {/* Tombol Pesanan Saya untuk Pembeli */}
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      if (onOpenOrders) onOpenOrders();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 font-medium transition"
+                  >
+                    <Package className="h-4 w-4 text-gray-500" />
+                    Pesanan Saya
+                  </button>
+
                   {isSeller && (
                     <button
                       onClick={() => {

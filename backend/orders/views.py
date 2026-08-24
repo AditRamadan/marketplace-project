@@ -8,6 +8,7 @@ from datetime import timedelta
 # Impor Model & Serializers
 from .models import Cart, CartItem, MasterOrder, SellerOrder, OrderItem, Shipping, StockReservation
 from .serializers import SellerOrderSerializer
+from .serializers import MasterOrderSerializer
 from products.models import Product
 from activity.utils import log_activity
 
@@ -18,7 +19,6 @@ class CheckoutView(APIView):
     def post(self, request):
         user = request.user
         
-        # PERBAIKAN: Gunakan get_or_create agar tidak crash jika cart belum ada
         cart, _ = Cart.objects.get_or_create(user=user)
         cart_items = CartItem.objects.filter(cart=cart)
 
@@ -30,8 +30,8 @@ class CheckoutView(APIView):
             if item.product.seller == user:
                 return Response({'error': f'Anda tidak dapat membeli produk Anda sendiri ({item.product.name})'}, status=400)
 
-        # 2. Lock baris stok (atomic transaction)
-        total_master_amount = 0
+        # 2. Lock baris stok & hitung subtotal barang
+        subtotal_products = 0
         items_by_seller = {}
 
         for item in cart_items:
@@ -51,27 +51,39 @@ class CheckoutView(APIView):
             )
 
             item_total = product.price * item.quantity
-            total_master_amount += item_total
+            subtotal_products += item_total
 
             seller_id = product.seller.id
             if seller_id not in items_by_seller:
                 items_by_seller[seller_id] = []
             items_by_seller[seller_id].append({'product': product, 'qty': item.quantity, 'price': product.price, 'subtotal': item_total})
 
-        # 3. Buat Master Order
+        # --- PERHITUNGAN BIAYA TAMBAHAN (ONGKIR & SERVICE FEE) ---
+        SHIPPING_FEE_PER_STORE = 15000
+        SERVICE_FEE = 2000
+        
+        total_stores = len(items_by_seller)  # Jumlah toko unik
+        total_shipping_fee = total_stores * SHIPPING_FEE_PER_STORE
+        
+        # Total Akhir yang akan disimpan ke database
+        grand_total_amount = subtotal_products + total_shipping_fee + SERVICE_FEE
+
+        # 3. Buat Master Order dengan GRAND TOTAL
         master_order = MasterOrder.objects.create(
             buyer=user,
-            total_amount=total_master_amount,
+            total_amount=grand_total_amount,  # <--- SUDAH MENCAKUP ONGKIR & BIAYA LAYANAN
             status=MasterOrder.Status.PENDING
         )
 
         # 4. Buat Seller Order Terpisah per Seller
         for seller_id, items in items_by_seller.items():
             seller_subtotal = sum(i['subtotal'] for i in items)
+            
+            # Subtotal seller bisa ditambah ongkir per toko jika dibutuhkan
             seller_order = SellerOrder.objects.create(
                 master_order=master_order,
                 seller_id=seller_id,
-                subtotal=seller_subtotal,
+                subtotal=seller_subtotal + SHIPPING_FEE_PER_STORE, 
                 status=SellerOrder.Status.WAITING_PAYMENT
             )
 
@@ -88,7 +100,7 @@ class CheckoutView(APIView):
         return Response({
             'message': 'Checkout berhasil, order telah diproses.',
             'master_order_id': master_order.id,
-            'total_amount': total_master_amount
+            'total_amount': grand_total_amount
         }, status=201)
 
 class CartView(APIView):
@@ -220,3 +232,11 @@ class ProcessShippingView(APIView):
         seller_order.save()
 
         return Response({'message': 'Resi berhasil diperbarui dan status order diubah ke SHIPPED'})
+
+class BuyerOrderListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        orders = MasterOrder.objects.filter(buyer=request.user).order_by('-created_at')
+        serializer = MasterOrderSerializer(orders, many=True)
+        return Response(serializer.data)

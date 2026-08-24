@@ -6,8 +6,8 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.views import RegisterView, ActivateSellerView, GoogleLoginView, CustomTokenObtainPairView
 from products.views import ProductListCreateView, ProductDetailView, CategoryListView, SellerProductListView, PublicStoreDetailView
-from orders.views import CheckoutView, CartView, SellerOrderListView, ProcessShippingView
-from payments.views import CreatePaymentView, MidtransWebhookView, UploadPaymentProofView, ReviewPaymentProofView
+from orders.views import CheckoutView, CartView, SellerOrderListView, ProcessShippingView, BuyerOrderListView
+from payments.views import CreatePaymentView, MidtransWebhookView, UploadPaymentProofView, ReviewPaymentProofView, CheckPaymentStatusView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,6 +31,9 @@ urlpatterns = [
     path('api/cart/<int:item_id>/', CartView.as_view()),
     path('api/checkout/', CheckoutView.as_view()),
 
+    # Buyer Orders
+    path('api/buyer/orders/', BuyerOrderListView.as_view()),
+
     # Seller Orders & Shipping
     path('api/seller/orders/', SellerOrderListView.as_view()),
     path('api/seller/orders/<int:seller_order_id>/ship/', ProcessShippingView.as_view()),
@@ -40,6 +43,7 @@ urlpatterns = [
     path('api/payments/create/<int:master_order_id>/', CreatePaymentView.as_view()),
     path('api/payments/<int:payment_id>/upload-proof/', UploadPaymentProofView.as_view()),
     path('api/payments/midtrans/notification/', MidtransWebhookView.as_view()),
+    path('api/payments/check-status/<int:master_order_id>/', CheckPaymentStatusView.as_view()),
 ]
 
 if settings.DEBUG:

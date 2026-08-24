@@ -17,11 +17,10 @@ export default function CartPage({
   onNavigateToSeller,
   onBack,
   onSelectProduct,
-  onCheckoutSuccess,
+  onGoToCheckout,
 }) {
   const [cartGroups, setCartGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const fetchCart = async () => {
@@ -57,7 +56,6 @@ export default function CartPage({
     }
 
     try {
-      // Kirim delta kuantitas (+1 atau -1) ke API
       await axiosClient.post("/cart/", {
         product_id: item.product_id,
         quantity: delta,
@@ -98,30 +96,6 @@ export default function CartPage({
       );
       return accGroup + groupQty;
     }, 0);
-  };
-
-  // Proses Checkout
-  const handleCheckout = async () => {
-    if (cartGroups.length === 0) return;
-
-    setCheckoutLoading(true);
-    setErrorMsg("");
-
-    try {
-      const res = await axiosClient.post("/checkout/");
-      alert(res.data.message || "Checkout Berhasil!");
-      if (onCheckoutSuccess) {
-        onCheckoutSuccess(res.data.master_order_id);
-      } else {
-        onBack();
-      }
-    } catch (err) {
-      const errorText =
-        err.response?.data?.error || "Terjadi kesalahan saat checkout.";
-      setErrorMsg(errorText);
-    } finally {
-      setCheckoutLoading(false);
-    }
   };
 
   return (
@@ -226,7 +200,7 @@ export default function CartPage({
 
                             <button
                               onClick={() => handleUpdateQuantity(item, 1)}
-                              disabled={item.quantity >= item.product_stock} // <-- Matikan tombol jika sudah mencapai batas stok
+                              disabled={item.quantity >= item.product_stock}
                               className="p-2 hover:bg-slate-200 disabled:opacity-40 rounded-r-lg text-slate-600 transition"
                               title={
                                 item.quantity >= item.product_stock
@@ -286,11 +260,11 @@ export default function CartPage({
                 </div>
 
                 <button
-                  onClick={handleCheckout}
-                  disabled={checkoutLoading}
+                  onClick={onGoToCheckout}
+                  disabled={cartGroups.length === 0}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-blue-200 flex items-center justify-center gap-2"
                 >
-                  {checkoutLoading ? "Memproses..." : "Beli / Checkout"}
+                  Beli / Checkout
                 </button>
               </div>
             </div>

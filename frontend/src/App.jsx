@@ -5,7 +5,8 @@ import BuyerDashboard from "./pages/BuyerDashboard";
 import SellerDashboard from "./pages/SellerDashboard";
 import ProductDetail from "./pages/ProductDetail";
 import StoreProfilePage from "./pages/StoreProfilePage";
-import CartPage from "./pages/CartPage"; // <-- Import CartPage
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -95,8 +96,21 @@ function App() {
         onNavigateToSeller={() => navigateTo("seller")}
         onBack={() => navigateTo("buyer")}
         onSelectProduct={(productId) => navigateTo("detail", productId)}
-        onCheckoutSuccess={(masterOrderId) => {
-          // Setelah checkout berhasil, kembali ke buyer dashboard atau halaman pembayaran
+        onGoToCheckout={() => navigateTo("checkout")}
+      />
+    );
+  }
+
+  // View Halaman Ringkasan Checkout
+  if (currentView === "checkout") {
+    return (
+      <CheckoutPage
+        user={user}
+        onBackToCart={() => navigateTo("cart")}
+        onProceedToPayment={(masterOrderId) => {
+          alert(
+            `Order #${masterOrderId} berhasil dibuat! Kembali ke Dashboard.`,
+          );
           navigateTo("buyer");
         }}
       />

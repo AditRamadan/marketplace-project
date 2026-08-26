@@ -1,8 +1,9 @@
 // src/pages/BuyerDashboard.jsx
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import axiosClient from "../api/axiosClient";
 import Navbar from "../components/Navbar";
-import BuyerOrdersPage from "./BuyerOrdersPage"; // Import Halaman Pesanan
+import BuyerOrdersPage from "./BuyerOrdersPage";
 
 export default function BuyerDashboard({
   user,
@@ -11,10 +12,11 @@ export default function BuyerDashboard({
   onSelectProduct,
   onOpenCart,
 }) {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cartGroups, setCartGroups] = useState([]);
-  const [activeTab, setActiveTab] = useState("catalog"); // 'catalog' atau 'orders'
+  const [activeTab, setActiveTab] = useState("catalog");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -75,7 +77,7 @@ export default function BuyerDashboard({
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            Katalog Produk
+            {t("catalog.all_categories")}
           </button>
           <button
             onClick={() => setActiveTab("orders")}
@@ -85,7 +87,7 @@ export default function BuyerDashboard({
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            Pesanan Saya
+            {t("navbar.my_orders")}
           </button>
         </div>
 
@@ -96,26 +98,25 @@ export default function BuyerDashboard({
           <>
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 md:p-8 text-white mb-8 shadow-md">
               <h1 className="text-2xl md:text-3xl font-bold mb-2">
-                Selamat Datang di TokoKita! 👋
+                {t("catalog.hero_title")}
               </h1>
               <p className="text-blue-100 text-sm md:text-base">
-                Temukan produk favorit Anda dengan harga terbaik dan promo
-                menarik hari ini.
+                {t("catalog.hero_subtitle")}
               </p>
             </div>
 
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">
-                Rekomendasi Produk
+                {t("catalog.hero_title")}
               </h2>
 
               {loading ? (
                 <div className="text-center py-12 text-gray-500">
-                  Memuat produk...
+                  {t("common.loading")}
                 </div>
               ) : products.length === 0 ? (
                 <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border">
-                  Belum ada produk yang dijual.
+                  {t("catalog.no_products")}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -164,7 +165,7 @@ export default function BuyerDashboard({
                             }}
                             className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg transition"
                           >
-                            Lihat Detail
+                            {t("catalog.detail")}
                           </button>
                         </div>
                       </div>

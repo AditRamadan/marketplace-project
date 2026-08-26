@@ -1,14 +1,31 @@
 # Python / Django
 *.pyc
 __pycache__/
-env/
+.venv/
 venv/
+env/
+backend/.venv/
+backend/venv/
+backend/env/
 *.sqlite3
+backend/*.sqlite3
 .env
 *.env
+backend/.env
+
+# Upload Media (Opsional: agar gambar produk lokal tidak ikut ke git)
+backend/media/
 
 # Node / React
 node_modules/
+frontend/node_modules/
 dist/
+frontend/dist/
+build/
+frontend/build/
 .env.local
 
+# Editor & OS
+.vscode/
+.DS_Store
+Thumbs.db

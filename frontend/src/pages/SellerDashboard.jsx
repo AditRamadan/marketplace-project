@@ -1,7 +1,9 @@
 // src/pages/SellerDashboard.jsx
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import axiosClient from "../api/axiosClient";
-import SellerDashboardOrders from "./SellerDashboardOrders"; // Import Komponen Orders Penjual
+import SellerDashboardOrders from "./SellerDashboardOrders";
+import SellerDashboardChats from "./SellerDashboardChats";
 import {
   Package,
   DollarSign,
@@ -11,14 +13,16 @@ import {
   Trash2,
   Edit,
   X,
+  MessageSquare,
 } from "lucide-react";
 
 export default function SellerDashboard({ user, onBackToBuyer }) {
+  const { t } = useTranslation();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("products"); // 'products' atau 'orders'
+  const [activeTab, setActiveTab] = useState("products"); // 'products', 'orders', atau 'chats'
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -55,13 +59,13 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
     fetchData();
   }, []);
 
-  // Hitung total pendapatan dari order yang sudah LUNAS (PAID)
   const totalRevenue = orders
     .filter(
       (o) =>
         o.status === "PAID" ||
         o.status === "SHIPPED" ||
-        o.status === "DELIVERED",
+        o.status === "DELIVERED" ||
+        o.status === "COMPLETED",
     )
     .reduce((acc, curr) => acc + parseFloat(curr.subtotal || 0), 0);
 
@@ -142,6 +146,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Top Navbar */}
       <header className="bg-slate-900 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -149,12 +154,12 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
               onClick={onBackToBuyer}
               className="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-sm px-3 py-1.5 rounded-lg text-gray-300 hover:text-white transition"
             >
-              <ArrowLeft className="h-4 w-4" /> Kembali ke Belanja
+              <ArrowLeft className="h-4 w-4" /> {t("seller.back_to_shop")}
             </button>
-            <h1 className="text-xl font-bold tracking-wide">Seller Centre</h1>
+            <h1 className="text-xl font-bold tracking-wide">{t("seller.title")}</h1>
           </div>
           <div className="text-sm text-slate-400">
-            Pemilik Toko:{" "}
+            {t("seller.store_owner")}:{" "}
             <span className="font-semibold text-white">
               {user?.username || user?.email}
             </span>
@@ -171,7 +176,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
             </div>
             <div>
               <p className="text-xs text-gray-500 font-medium">
-                Total Pendapatan
+                {t("seller.stat_revenue")}
               </p>
               <h3 className="text-2xl font-bold text-gray-800">
                 Rp {totalRevenue.toLocaleString("id-ID")}
@@ -184,9 +189,11 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
               <ShoppingBag className="h-8 w-8" />
             </div>
             <div>
-              <p className="text-xs text-gray-500 font-medium">Pesanan Masuk</p>
+              <p className="text-xs text-gray-500 font-medium">
+                {t("seller.stat_orders")}
+              </p>
               <h3 className="text-2xl font-bold text-gray-800">
-                {orders.length} Pesanan
+                {orders.length}
               </h3>
             </div>
           </div>
@@ -197,17 +204,17 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
             </div>
             <div>
               <p className="text-xs text-gray-500 font-medium">
-                Total Produk Aktif
+                {t("seller.stat_products")}
               </p>
               <h3 className="text-2xl font-bold text-gray-800">
-                {products.length} Produk
+                {products.length} {t("common.pcs")}
               </h3>
             </div>
           </div>
         </div>
 
-        {/* Tab Sub-Menu */}
-        <div className="flex gap-4 mb-6 border-b pb-2">
+        {/* Tab Sub-Menu Navigasi */}
+        <div className="flex gap-6 mb-6 border-b pb-2">
           <button
             onClick={() => setActiveTab("products")}
             className={`font-semibold text-sm pb-2 border-b-2 transition ${
@@ -216,7 +223,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            Daftar Produk Toko
+            {t("seller.tab_products")}
           </button>
           <button
             onClick={() => setActiveTab("orders")}
@@ -226,46 +233,55 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
-            Pesanan Masuk & Pembayaran
+            {t("seller.tab_orders")}
+          </button>
+          <button
+            onClick={() => setActiveTab("chats")}
+            className={`font-semibold text-sm pb-2 border-b-2 transition flex items-center gap-1.5 ${
+              activeTab === "chats"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <MessageSquare className="h-4 w-4" /> Pesan Masuk (Chat)
           </button>
         </div>
 
-        {/* Dynamic Section Render */}
+        {/* Render Bagian Dinamis */}
         {activeTab === "orders" ? (
           <SellerDashboardOrders />
+        ) : activeTab === "chats" ? (
+          <SellerDashboardChats user={user} />
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-lg font-bold text-gray-800">
-                  Daftar Produk Toko
+                  {t("seller.tab_products")}
                 </h2>
-                <p className="text-xs text-gray-500">
-                  Kelola stok, gambar, dan harga produk Anda
-                </p>
               </div>
               <button
                 onClick={handleOpenAddModal}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
               >
-                <Plus className="h-4 w-4" /> + Tambah Produk Baru
+                <Plus className="h-4 w-4" /> + {t("seller.add_product")}
               </button>
             </div>
 
             {loading ? (
               <p className="text-center py-8 text-gray-500">
-                Memuat data produk...
+                {t("common.loading")}
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
-                      <th className="py-3 px-4">Gambar</th>
-                      <th className="py-3 px-4">Nama Produk</th>
-                      <th className="py-3 px-4">Harga</th>
-                      <th className="py-3 px-4">Stok</th>
-                      <th className="py-3 px-4 text-center">Aksi</th>
+                      <th className="py-3 px-4">{t("seller.table_image")}</th>
+                      <th className="py-3 px-4">{t("seller.table_name")}</th>
+                      <th className="py-3 px-4">{t("seller.table_price")}</th>
+                      <th className="py-3 px-4">{t("seller.table_stock")}</th>
+                      <th className="py-3 px-4 text-center">{t("seller.table_action")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y text-sm">
@@ -275,8 +291,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                           colSpan="5"
                           className="text-center py-6 text-gray-500"
                         >
-                          Belum ada produk. Klik "+ Tambah Produk Baru" untuk
-                          menambahkan.
+                          {t("seller.no_products")}
                         </td>
                       </tr>
                     ) : (
@@ -307,7 +322,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                           </td>
                           <td className="py-3 px-4">
                             <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-md font-semibold">
-                              {p.stock} pcs
+                              {p.stock} {t("common.pcs")}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -315,12 +330,14 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                               <button
                                 onClick={() => handleOpenEditModal(p)}
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                title={t("common.edit")}
                               >
                                 <Edit className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => handleDelete(p.id)}
                                 className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                                title={t("common.delete")}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -343,7 +360,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
             <div className="flex justify-between items-center p-5 border-b bg-gray-50">
               <h3 className="font-bold text-gray-800">
-                {editingProduct ? "Edit Produk" : "Tambah Produk Baru"}
+                {editingProduct ? t("seller.edit_product") : t("seller.add_product")}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -356,7 +373,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Nama Produk
+                  {t("seller.product_name")}
                 </label>
                 <input
                   type="text"
@@ -366,14 +383,14 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Contoh: Sepatu Sneakers"
+                  placeholder="Contoh: Kemeja Batik"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Kategori
+                    {t("seller.category")}
                   </label>
                   <select
                     value={formData.category}
@@ -383,7 +400,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                     className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     required
                   >
-                    <option value="">Pilih Kategori</option>
+                    <option value="">{t("seller.select_category")}</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -394,7 +411,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Harga (Rp)
+                    {t("seller.price")}
                   </label>
                   <input
                     type="number"
@@ -412,7 +429,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Stok
+                    {t("seller.stock")}
                   </label>
                   <input
                     type="number"
@@ -428,7 +445,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Berat (Gram)
+                    {t("seller.weight")}
                   </label>
                   <input
                     type="number"
@@ -445,7 +462,7 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Deskripsi
+                  {t("seller.description")}
                 </label>
                 <textarea
                   rows="3"
@@ -454,13 +471,13 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                     setFormData({ ...formData, description: e.target.value })
                   }
                   className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Tuliskan deskripsi lengkap produk..."
+                  placeholder="..."
                 ></textarea>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Gambar Produk
+                  {t("seller.product_image")}
                 </label>
                 <input
                   type="file"
@@ -478,13 +495,13 @@ export default function SellerDashboard({ user, onBackToBuyer }) {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 border text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50"
                 >
-                  Batal
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-md"
                 >
-                  {editingProduct ? "Simpan Perubahan" : "Tambah Produk"}
+                  {t("common.save")}
                 </button>
               </div>
             </form>

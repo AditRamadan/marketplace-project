@@ -1,20 +1,21 @@
 // src/pages/BuyerOrdersPage.jsx
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import axiosClient from "../api/axiosClient";
 import {
   Package,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
   Truck,
   CreditCard,
   Loader2,
+  Check,
 } from "lucide-react";
 
 export default function BuyerOrdersPage() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingOrderId, setPayingOrderId] = useState(null);
+  const [completingOrderId, setCompletingOrderId] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -39,54 +40,58 @@ export default function BuyerOrdersPage() {
     }
   };
 
-  // FUNGSI UNTUK MELANJUTKAN PEMBAYARAN MIDTRANS
   const handlePayNow = async (orderId) => {
     setPayingOrderId(orderId);
     try {
-      // Panggil API create payment untuk mengambil snap_token
-      const paymentRes = await axiosClient.post(
-        `/payments/create/${orderId}/`,
-        {
-          method: "MIDTRANS",
-        },
-      );
-
+      const paymentRes = await axiosClient.post(`/payments/create/${orderId}/`, {
+        method: "MIDTRANS",
+      });
       const snapToken = paymentRes.data.snap_token;
-
       if (!snapToken) {
         alert("Gagal mendapatkan token pembayaran Midtrans.");
         return;
       }
-
       if (window.snap) {
         window.snap.pay(snapToken, {
-          onSuccess: async function (result) {
+          onSuccess: async function () {
             alert("Pembayaran Berhasil!");
             await syncMidtransStatus(orderId);
-            fetchOrders(); // Refresh daftar pesanan
+            fetchOrders();
           },
-          onPending: async function (result) {
+          onPending: async function () {
             alert("Menunggu Pembayaran...");
             await syncMidtransStatus(orderId);
             fetchOrders();
           },
-          onError: function (result) {
+          onError: function () {
             alert("Gagal melakukan pembayaran Midtrans.");
           },
           onClose: function () {
-            alert("Anda menutup pop-up pembayaran Midtrans.");
+            alert("Anda menutup pop-up pembayaran.");
           },
         });
-      } else {
-        alert(
-          "Midtrans SDK belum dimuat. Pastikan snap.js sudah terpasang di index.html.",
-        );
       }
     } catch (err) {
-      console.error("Error Lanjutkan Pembayaran:", err);
       alert(err.response?.data?.error || "Gagal melanjutkan pembayaran.");
     } finally {
       setPayingOrderId(null);
+    }
+  };
+
+  const handleConfirmReceived = async (sellerOrderId) => {
+    if (!window.confirm(t("orders.confirm_received_prompt"))) {
+      return;
+    }
+
+    setCompletingOrderId(sellerOrderId);
+    try {
+      const res = await axiosClient.post(`/buyer/orders/${sellerOrderId}/complete/`);
+      alert(res.data.message || "Pesanan telah dikonfirmasi selesai!");
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.error || "Gagal menyelesaikan pesanan.");
+    } finally {
+      setCompletingOrderId(null);
     }
   };
 
@@ -95,13 +100,20 @@ export default function BuyerOrdersPage() {
       case "PAID":
         return (
           <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
-            Lunas
+            {t("orders.status_paid")}
+          </span>
+        );
+      case "COMPLETED":
+        return (
+          <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+            {t("orders.status_completed")}
           </span>
         );
       case "PENDING":
+      case "WAITING_PAYMENT":
         return (
           <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">
-            Menunggu Pembayaran
+            {t("orders.status_waiting")}
           </span>
         );
       default:
@@ -116,19 +128,19 @@ export default function BuyerOrdersPage() {
   if (loading)
     return (
       <div className="p-8 text-center text-slate-500">
-        Memuat pesanan Anda...
+        {t("common.loading")}
       </div>
     );
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-        <Package className="h-6 w-6 text-blue-600" /> Pesanan Saya
+        <Package className="h-6 w-6 text-blue-600" /> {t("orders.title")}
       </h1>
 
       {orders.length === 0 ? (
         <div className="bg-white p-8 rounded-2xl border text-center text-slate-500">
-          Belum ada riwayat pesanan.
+          {t("orders.empty_orders")}
         </div>
       ) : (
         orders.map((order) => (
@@ -139,7 +151,7 @@ export default function BuyerOrdersPage() {
             <div className="flex justify-between items-center border-b pb-3">
               <div>
                 <span className="text-xs text-slate-400">
-                  ID Pesanan: #{order.id}
+                  {t("orders.order_id")}: #{order.id}
                 </span>
                 <p className="text-xs text-slate-500">
                   {new Date(order.created_at).toLocaleString("id-ID")}
@@ -156,10 +168,22 @@ export default function BuyerOrdersPage() {
               >
                 <div className="flex justify-between items-center text-xs border-b border-slate-200 pb-2">
                   <span className="font-bold text-slate-700">
-                    Toko: {sellerOrder.store_name}
+                    {t("orders.store")}: {sellerOrder.store_name}
                   </span>
-                  <span className="text-blue-600 font-semibold">
-                    {sellerOrder.status}
+                  <span
+                    className={`font-semibold ${
+                      sellerOrder.status === "COMPLETED"
+                        ? "text-emerald-600"
+                        : sellerOrder.status === "SHIPPED"
+                        ? "text-blue-600"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    {sellerOrder.status === "COMPLETED"
+                      ? t("orders.status_completed")
+                      : sellerOrder.status === "SHIPPED"
+                      ? t("orders.status_shipped")
+                      : sellerOrder.status}
                   </span>
                 </div>
 
@@ -179,12 +203,34 @@ export default function BuyerOrdersPage() {
                     </div>
                     <p className="font-bold text-slate-800">
                       Rp{" "}
-                      {(item.quantity * parseFloat(item.price)).toLocaleString(
-                        "id-ID",
-                      )}
+                      {(item.quantity * parseFloat(item.price)).toLocaleString("id-ID")}
                     </p>
                   </div>
                 ))}
+
+                {/* Tombol Konfirmasi Terima Barang */}
+                {sellerOrder.status === "SHIPPED" && (
+                  <div className="flex justify-between items-center pt-3 border-t border-slate-200">
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Truck className="h-3.5 w-3.5 text-blue-500" /> {t("orders.on_delivery")}
+                    </span>
+                    <button
+                      onClick={() => handleConfirmReceived(sellerOrder.id)}
+                      disabled={completingOrderId === sellerOrder.id}
+                      className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow-xs"
+                    >
+                      {completingOrderId === sellerOrder.id ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("common.loading")}
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-3.5 w-3.5" /> {t("orders.order_received")}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
 
@@ -192,15 +238,14 @@ export default function BuyerOrdersPage() {
             <div className="flex justify-between items-center pt-2 border-t border-slate-100">
               <div>
                 <span className="text-xs text-slate-400 block">
-                  Total Pembayaran
+                  {t("orders.total_payment")}
                 </span>
                 <span className="text-lg font-bold text-blue-600">
                   Rp {parseFloat(order.total_amount).toLocaleString("id-ID")}
                 </span>
               </div>
 
-              {/* TOMBOL BAYAR SEKARANG HANYA TAMPIL JIKA STATUS PENDING */}
-              {order.status === "PENDING" && (
+              {(order.status === "PENDING" || order.status === "WAITING_PAYMENT") && (
                 <button
                   onClick={() => handlePayNow(order.id)}
                   disabled={payingOrderId === order.id}
@@ -208,11 +253,11 @@ export default function BuyerOrdersPage() {
                 >
                   {payingOrderId === order.id ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Memproses...
+                      <Loader2 className="h-4 w-4 animate-spin" /> {t("common.loading")}
                     </>
                   ) : (
                     <>
-                      <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                      <CreditCard className="h-4 w-4" /> {t("orders.pay_now")}
                     </>
                   )}
                 </button>

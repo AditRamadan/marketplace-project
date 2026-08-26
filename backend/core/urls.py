@@ -6,8 +6,10 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.views import RegisterView, ActivateSellerView, GoogleLoginView, CustomTokenObtainPairView
 from products.views import ProductListCreateView, ProductDetailView, CategoryListView, SellerProductListView, PublicStoreDetailView
-from orders.views import CheckoutView, CartView, SellerOrderListView, ProcessShippingView, BuyerOrderListView
+from orders.views import CheckoutView, CartView, SellerOrderListView, ProcessShippingView, BuyerOrderListView, CompleteOrderView
 from payments.views import CreatePaymentView, MidtransWebhookView, UploadPaymentProofView, ReviewPaymentProofView, CheckPaymentStatusView
+from chat.views import GetOrCreateConversationView, ConversationMessagesView, SellerConversationsView
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,6 +35,7 @@ urlpatterns = [
 
     # Buyer Orders
     path('api/buyer/orders/', BuyerOrderListView.as_view()),
+    path('api/buyer/orders/<int:seller_order_id>/complete/', CompleteOrderView.as_view(), name='complete-order'),
 
     # Seller Orders & Shipping
     path('api/seller/orders/', SellerOrderListView.as_view()),
@@ -44,6 +47,11 @@ urlpatterns = [
     path('api/payments/<int:payment_id>/upload-proof/', UploadPaymentProofView.as_view()),
     path('api/payments/midtrans/notification/', MidtransWebhookView.as_view()),
     path('api/payments/check-status/<int:master_order_id>/', CheckPaymentStatusView.as_view()),
+
+    # Chat Endpoints
+    path('api/chat/conversation/', GetOrCreateConversationView.as_view()),
+    path('api/chat/conversation/<int:conversation_id>/messages/', ConversationMessagesView.as_view()),
+    path('api/seller/chats/', SellerConversationsView.as_view()),
 ]
 
 if settings.DEBUG:

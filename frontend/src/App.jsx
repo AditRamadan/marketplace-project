@@ -7,6 +7,7 @@ import ProductDetail from "./pages/ProductDetail";
 import StoreProfilePage from "./pages/StoreProfilePage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
+import BuyerOrdersPage from "./pages/BuyerOrdersPage"; // 1. Import BuyerOrdersPage
 
 function App() {
   const [user, setUser] = useState(null);
@@ -87,6 +88,23 @@ function App() {
     );
   }
 
+  // View Riwayat Pesanan Buyer
+  if (currentView === "orders") {
+    return (
+      <div>
+        <div className="max-w-4xl mx-auto px-4 pt-4">
+          <button
+            onClick={() => navigateTo("buyer")}
+            className="text-sm font-medium text-slate-600 hover:text-blue-600 transition flex items-center gap-1"
+          >
+            &larr; Kembali ke Beranda
+          </button>
+        </div>
+        <BuyerOrdersPage />
+      </div>
+    );
+  }
+
   // View Keranjang Belanja
   if (currentView === "cart") {
     return (
@@ -108,10 +126,8 @@ function App() {
         user={user}
         onBackToCart={() => navigateTo("cart")}
         onProceedToPayment={(masterOrderId) => {
-          alert(
-            `Order #${masterOrderId} berhasil dibuat! Kembali ke Dashboard.`,
-          );
-          navigateTo("buyer");
+          // 2. Arahkan langsung ke halaman pesanan setelah checkout / submit bukti transfer
+          navigateTo("orders");
         }}
       />
     );
@@ -157,6 +173,7 @@ function App() {
       onNavigateToSeller={() => navigateTo("seller")}
       onSelectProduct={(productId) => navigateTo("detail", productId)}
       onOpenCart={() => navigateTo("cart")}
+      onOpenOrders={() => navigateTo("orders")} // 3. Handler menu pesanan
     />
   );
 }

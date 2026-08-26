@@ -1,5 +1,6 @@
 // src/pages/CheckoutPage.jsx
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import axiosClient from "../api/axiosClient";
 import {
   ArrowLeft,
@@ -18,6 +19,7 @@ export default function CheckoutPage({
   onBackToCart,
   onProceedToPayment,
 }) {
+  const { t } = useTranslation();
   const [cartGroups, setCartGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -62,7 +64,6 @@ export default function CheckoutPage({
   const totalShippingFee = cartGroups.length * SHIPPING_FEE_PER_STORE;
   const grandTotal = subtotalProducts + totalShippingFee + SERVICE_FEE;
 
-  // Fungsi helper untuk sync status ke Midtrans tanpa Ngrok
   const syncMidtransStatus = async (masterOrderId) => {
     try {
       await axiosClient.get(`/payments/check-status/${masterOrderId}/`);
@@ -76,7 +77,6 @@ export default function CheckoutPage({
     try {
       let masterOrderId = createdMasterOrderId;
 
-      // 1. Buat order baru HANYA jika belum ada MasterOrderId yang tersimpan
       if (!masterOrderId) {
         if (cartGroups.length === 0) {
           alert("Keranjang belanja Anda kosong.");
@@ -88,7 +88,6 @@ export default function CheckoutPage({
         setCreatedMasterOrderId(masterOrderId);
       }
 
-      // 2. Request token pembayaran ke API Backend
       const paymentRes = await axiosClient.post(
         `/payments/create/${masterOrderId}/`,
         {
@@ -96,7 +95,6 @@ export default function CheckoutPage({
         },
       );
 
-      // 3. Eksekusi Pembayaran
       if (selectedMethod === "MIDTRANS") {
         const snapToken = paymentRes.data.snap_token;
 
@@ -107,28 +105,24 @@ export default function CheckoutPage({
         }
 
         if (window.snap) {
-          // MIDTRANS SNAP POPUP CALLBACK DITARUH DI SINI
-          // Ubah pada bagian callback window.snap.pay di CheckoutPage.jsx:
-
           window.snap.pay(snapToken, {
-            onSuccess: async function (result) {
+            onSuccess: async function () {
               alert("Pembayaran Berhasil!");
               await syncMidtransStatus(masterOrderId);
               onProceedToPayment(masterOrderId);
             },
-            onPending: async function (result) {
+            onPending: async function () {
               alert("Menunggu Pembayaran...");
               await syncMidtransStatus(masterOrderId);
               onProceedToPayment(masterOrderId);
             },
-            onError: function (result) {
+            onError: function () {
               alert("Gagal melakukan pembayaran Midtrans.");
             },
             onClose: function () {
               alert(
                 "Anda menutup pop-up pembayaran Midtrans. Anda dapat melanjutkan pembayaran kapan saja dari halaman Pesanan Saya.",
               );
-              // LANGSUNG DIALIKAN KE HALAMAN PESANAN SAYA
               onProceedToPayment(masterOrderId);
             },
           });
@@ -181,7 +175,7 @@ export default function CheckoutPage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <p className="text-slate-500 font-medium">
-          Memuat ringkasan pesanan...
+          {t("common.loading")}
         </p>
       </div>
     );
@@ -193,7 +187,7 @@ export default function CheckoutPage({
         <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border p-6 text-center space-y-4">
           <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto" />
           <h2 className="text-xl font-bold text-slate-800">
-            Pesanan Berhasil Dibuat
+            {t("checkout.upload_proof_title")}
           </h2>
           <p className="text-sm text-slate-600">
             Silakan transfer sebesar{" "}
@@ -225,7 +219,7 @@ export default function CheckoutPage({
           >
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-2">
-                Unggah Bukti Transfer:
+                {t("checkout.upload_proof_desc")}
               </label>
               <input
                 type="file"
@@ -242,7 +236,7 @@ export default function CheckoutPage({
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2"
             >
               <Upload className="h-4 w-4" />
-              {uploading ? "Mengirim..." : "Kirim Bukti Transfer"}
+              {uploading ? t("common.loading") : t("checkout.submit_proof")}
             </button>
           </form>
         </div>
@@ -257,19 +251,18 @@ export default function CheckoutPage({
           onClick={onBackToCart}
           className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 font-medium mb-6 transition"
         >
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Keranjang
+          <ArrowLeft className="h-4 w-4" /> {t("checkout.back_to_cart")}
         </button>
 
         <h1 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-          <CreditCard className="h-7 w-7 text-blue-600" /> Ringkasan Pembayaran
-          & Checkout
+          <CreditCard className="h-7 w-7 text-blue-600" /> {t("checkout.title")}
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="space-y-4">
               <h2 className="font-bold text-slate-800 text-lg">
-                Produk Dipesan
+                {t("cart.title")}
               </h2>
               {cartGroups.map((group) => (
                 <div
@@ -279,7 +272,7 @@ export default function CheckoutPage({
                   <div className="flex items-center gap-2 border-b pb-3 mb-3">
                     <Store className="h-4 w-4 text-blue-600" />
                     <span className="font-bold text-slate-800 text-sm">
-                      {group.store_name}
+                      {t("cart.store")}: {group.store_name}
                     </span>
                   </div>
                   <div className="space-y-3 divide-y divide-slate-100">
@@ -309,7 +302,7 @@ export default function CheckoutPage({
 
             <div className="bg-white rounded-2xl p-5 shadow-sm border space-y-4">
               <h2 className="font-bold text-slate-800 text-lg">
-                Pilih Metode Pembayaran
+                {t("checkout.payment_method")}
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -331,10 +324,10 @@ export default function CheckoutPage({
                   />
                   <div>
                     <p className="font-bold text-sm text-slate-800">
-                      Payment Gateway
+                      {t("checkout.gateway_title")}
                     </p>
                     <p className="text-xs text-slate-500">
-                      QRIS, VA, E-Wallet (Midtrans)
+                      {t("checkout.gateway_desc")}
                     </p>
                   </div>
                 </button>
@@ -357,10 +350,10 @@ export default function CheckoutPage({
                   />
                   <div>
                     <p className="font-bold text-sm text-slate-800">
-                      Transfer Manual
+                      {t("checkout.manual_title")}
                     </p>
                     <p className="text-xs text-slate-500">
-                      Upload bukti transfer
+                      {t("checkout.manual_desc")}
                     </p>
                   </div>
                 </button>
@@ -383,10 +376,10 @@ export default function CheckoutPage({
                   />
                   <div>
                     <p className="font-bold text-sm text-slate-800">
-                      COD (Bayar di Tempat)
+                      {t("checkout.cod_title")}
                     </p>
                     <p className="text-xs text-slate-500">
-                      Bayar saat kurir datang
+                      {t("checkout.cod_desc")}
                     </p>
                   </div>
                 </button>
@@ -396,8 +389,7 @@ export default function CheckoutPage({
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 flex items-start gap-2">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>
-                    Transfer Manual memerlukan unggah bukti bayar & verifikasi
-                    oleh Seller.
+                    {t("checkout.manual_desc")}
                   </span>
                 </div>
               )}
@@ -406,26 +398,26 @@ export default function CheckoutPage({
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border h-fit sticky top-24 space-y-4">
             <h2 className="font-bold text-slate-900 border-b pb-3 text-lg">
-              Rincian Tagihan
+              {t("checkout.bill_summary")}
             </h2>
 
             <div className="space-y-3 text-sm text-slate-600">
               <div className="flex justify-between">
-                <span>Subtotal Produk</span>
+                <span>{t("checkout.product_subtotal")}</span>
                 <span className="font-semibold text-slate-800">
                   Rp {subtotalProducts.toLocaleString("id-ID")}
                 </span>
               </div>
 
               <div className="flex justify-between">
-                <span>Ongkos Kirim ({cartGroups.length} Toko)</span>
+                <span>{t("checkout.shipping_fee")} ({cartGroups.length} {t("orders.store")})</span>
                 <span className="font-semibold text-slate-800">
                   Rp {totalShippingFee.toLocaleString("id-ID")}
                 </span>
               </div>
 
               <div className="flex justify-between">
-                <span>Biaya Layanan & Penanganan</span>
+                <span>{t("checkout.service_fee")}</span>
                 <span className="font-semibold text-slate-800">
                   Rp {SERVICE_FEE.toLocaleString("id-ID")}
                 </span>
@@ -433,7 +425,7 @@ export default function CheckoutPage({
             </div>
 
             <div className="border-t pt-4 flex justify-between items-center">
-              <span className="font-bold text-slate-800">Total Tagihan</span>
+              <span className="font-bold text-slate-800">{t("checkout.total_bill")}</span>
               <span className="font-bold text-xl text-blue-600">
                 Rp {grandTotal.toLocaleString("id-ID")}
               </span>
@@ -444,12 +436,11 @@ export default function CheckoutPage({
               disabled={processing}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 shadow-md shadow-blue-200"
             >
-              {processing ? "Memproses..." : "Bayar Sekarang"}
+              {processing ? t("common.loading") : t("checkout.pay_btn")}
             </button>
 
             <div className="flex items-center gap-2 text-xs text-slate-400 justify-center pt-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-500" /> Transaksi
-              Aman & Terenkripsi
+              <ShieldCheck className="h-4 w-4 text-emerald-500" /> {t("checkout.secure_notice")}
             </div>
           </div>
         </div>

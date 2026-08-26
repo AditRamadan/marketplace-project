@@ -1,5 +1,6 @@
 // src/pages/CartPage.jsx
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import Navbar from "../components/Navbar";
 import axiosClient from "../api/axiosClient";
 import {
@@ -19,6 +20,7 @@ export default function CartPage({
   onSelectProduct,
   onGoToCheckout,
 }) {
+  const { t } = useTranslation();
   const [cartGroups, setCartGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -41,13 +43,11 @@ export default function CartPage({
     fetchCart();
   }, []);
 
-  // Update kuantitas item
   const handleUpdateQuantity = async (item, delta) => {
     const newQty = item.quantity + delta;
 
     if (newQty < 1) return;
 
-    // Batasi penambahan di Frontend jika melebihi stok
     if (delta > 0 && newQty > item.product_stock) {
       alert(
         `Jumlah tidak boleh melebihi stok yang tersedia (${item.product_stock} pcs).`,
@@ -66,8 +66,9 @@ export default function CartPage({
     }
   };
 
-  // Hapus item dari keranjang
   const handleDeleteItem = async (cartItemId) => {
+    if (!window.confirm(t("cart.delete_confirm"))) return;
+
     try {
       await axiosClient.delete(`/cart/${cartItemId}/`);
       fetchCart();
@@ -76,7 +77,6 @@ export default function CartPage({
     }
   };
 
-  // Hitung total keseluruhan biaya
   const calculateGrandTotal = () => {
     return cartGroups.reduce((accGroup, group) => {
       const groupSubtotal = group.items.reduce(
@@ -87,7 +87,6 @@ export default function CartPage({
     }, 0);
   };
 
-  // Hitung total jumlah item
   const calculateTotalItems = () => {
     return cartGroups.reduce((accGroup, group) => {
       const groupQty = group.items.reduce(
@@ -112,11 +111,11 @@ export default function CartPage({
           onClick={onBack}
           className="flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 mb-6 font-medium transition"
         >
-          <ArrowLeft className="h-4 w-4" /> Kembali Belanja
+          <ArrowLeft className="h-4 w-4" /> {t("seller.back_to_shop")}
         </button>
 
         <h1 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-          <ShoppingBag className="h-7 w-7 text-blue-600" /> Keranjang Belanja
+          <ShoppingBag className="h-7 w-7 text-blue-600" /> {t("cart.title")}
         </h1>
 
         {errorMsg && (
@@ -128,23 +127,23 @@ export default function CartPage({
         {loading ? (
           <div className="text-center py-16 bg-white rounded-2xl shadow-sm border">
             <p className="text-slate-500 font-medium">
-              Memuat keranjang Anda...
+              {t("common.loading")}
             </p>
           </div>
         ) : cartGroups.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl shadow-sm border">
             <ShoppingBag className="h-16 w-16 text-slate-300 mx-auto mb-4" />
             <h2 className="text-lg font-bold text-slate-700">
-              Keranjang Anda Kosong
+              {t("cart.empty_title")}
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Yuk, cari produk impian Anda dan tambahkan ke keranjang!
+              {t("cart.empty_subtitle")}
             </p>
             <button
               onClick={onBack}
               className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition shadow-md shadow-blue-200"
             >
-              Mulai Belanja
+              {t("cart.start_shopping")}
             </button>
           </div>
         ) : (
@@ -160,7 +159,7 @@ export default function CartPage({
                   <div className="bg-slate-50 border-b px-6 py-3 flex items-center gap-2">
                     <Store className="h-4 w-4 text-slate-600" />
                     <span className="font-bold text-slate-800 text-sm">
-                      {group.store_name}
+                      {t("cart.store")}: {group.store_name}
                     </span>
                   </div>
 
@@ -224,7 +223,7 @@ export default function CartPage({
                           <button
                             onClick={() => handleDeleteItem(item.cart_item_id)}
                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                            title="Hapus Item"
+                            title={t("common.delete")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -240,20 +239,20 @@ export default function CartPage({
             <div className="lg:col-span-1">
               <div className="bg-white border rounded-2xl p-6 shadow-sm sticky top-24">
                 <h2 className="font-bold text-lg text-slate-900 mb-4">
-                  Ringkasan Belanja
+                  {t("checkout.bill_summary")}
                 </h2>
 
                 <div className="space-y-3 border-b pb-4 text-sm text-slate-600">
                   <div className="flex justify-between">
-                    <span>Total Item</span>
+                    <span>{t("checkout.product_subtotal")}</span>
                     <span className="font-semibold text-slate-800">
-                      {calculateTotalItems()} barang
+                      {calculateTotalItems()} {t("common.pcs")}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center my-6">
-                  <span className="font-bold text-slate-800">Total Harga</span>
+                  <span className="font-bold text-slate-800">{t("cart.total")}</span>
                   <span className="font-bold text-xl text-blue-600">
                     Rp {calculateGrandTotal().toLocaleString("id-ID")}
                   </span>
@@ -264,7 +263,7 @@ export default function CartPage({
                   disabled={cartGroups.length === 0}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-blue-200 flex items-center justify-center gap-2"
                 >
-                  Beli / Checkout
+                  {t("cart.checkout")}
                 </button>
               </div>
             </div>

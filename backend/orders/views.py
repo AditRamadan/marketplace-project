@@ -240,3 +240,31 @@ class BuyerOrderListView(APIView):
         orders = MasterOrder.objects.filter(buyer=request.user).order_by('-created_at')
         serializer = MasterOrderSerializer(orders, many=True)
         return Response(serializer.data)
+
+
+class CompleteOrderView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, seller_order_id):
+        try:
+            seller_order = SellerOrder.objects.get(
+                id=seller_order_id, 
+                master_order__buyer=request.user
+            )
+        except SellerOrder.DoesNotExist:
+            return Response(
+                {'error': 'Pesanan tidak ditemukan'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Update status SellerOrder menjadi COMPLETED
+        seller_order.status = 'COMPLETED'
+        seller_order.save()
+
+        # Update MasterOrder jika seluruh sub-order selesai
+        master_order = seller_order.master_order
+        if not master_order.seller_orders.exclude(status='COMPLETED').exists():
+            master_order.status = 'COMPLETED'
+            master_order.save()
+
+        return Response({'message': 'Pesanan berhasil diselesaikan!'})

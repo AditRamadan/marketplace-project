@@ -1,7 +1,9 @@
 // src/pages/ProductDetail.jsx
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import axiosClient from "../api/axiosClient";
 import Navbar from "../components/Navbar";
+import ChatModal from "../components/ChatModal";
 import {
   ArrowLeft,
   ShoppingCart,
@@ -9,6 +11,7 @@ import {
   Scale,
   Store,
   ExternalLink,
+  MessageSquare,
 } from "lucide-react";
 
 export default function ProductDetail({
@@ -20,17 +23,16 @@ export default function ProductDetail({
   onVisitStore,
   onOpenCart,
 }) {
+  const { t } = useTranslation();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  // 1. Tambahkan state cartGroups untuk menampung data keranjang
   const [cartGroups, setCartGroups] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Fungsi untuk mengambil data keranjang dari backend
   const fetchCart = async () => {
     try {
       const res = await axiosClient.get("/cart/");
-      // Sesuaikan dengan struktur response API (array kelompok toko atau array item)
       const data = Array.isArray(res.data) ? res.data : res.data.groups || [];
       setCartGroups(data);
     } catch (err) {
@@ -52,11 +54,10 @@ export default function ProductDetail({
 
     if (productId) {
       fetchProductDetail();
-      fetchCart(); // Fetch data keranjang saat komponen dimuat
+      fetchCart();
     }
   }, [productId]);
 
-  // 2. Perbaiki calculateTotalItems dengan pengamanan null/undefined check
   const calculateTotalItems = () => {
     if (!Array.isArray(cartGroups)) return 0;
 
@@ -81,7 +82,7 @@ export default function ProductDetail({
         quantity: quantity,
       });
       alert(res.data.message || "Produk berhasil ditambahkan ke keranjang!");
-      fetchCart(); // 3. Refresh total item keranjang setelah berhasil menambah item
+      fetchCart();
     } catch (err) {
       console.error("Error Add to Cart:", err);
       const errorMsg =
@@ -93,12 +94,15 @@ export default function ProductDetail({
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Memuat detail produk...</p>
+        <p className="text-gray-500">{t("common.loading")}</p>
       </div>
     );
   }
 
   if (!product) return null;
+
+  const sellerId =
+    typeof product.seller === "object" ? product.seller.id : product.seller;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -115,7 +119,7 @@ export default function ProductDetail({
           onClick={onBack}
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 font-medium transition"
         >
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Katalog
+          <ArrowLeft className="h-4 w-4" /> {t("seller.back_to_shop")}
         </button>
 
         {/* Card Main Product */}
@@ -133,7 +137,7 @@ export default function ProductDetail({
               />
             ) : (
               <div className="h-80 w-full flex items-center justify-center text-gray-400">
-                Tidak ada gambar
+                No Image
               </div>
             )}
           </div>
@@ -141,7 +145,7 @@ export default function ProductDetail({
           <div className="flex flex-col justify-between space-y-6">
             <div>
               <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
-                {product.category_detail?.name || "Kategori"}
+                {product.category_detail?.name || t("seller.category")}
               </span>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mt-3">
                 {product.name}
@@ -156,16 +160,16 @@ export default function ProductDetail({
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-gray-500" />
                   <span>
-                    Stok:{" "}
+                    {t("catalog.stock")}:{" "}
                     <strong className="text-gray-800">
-                      {product.stock} pcs
+                      {product.stock} {t("common.pcs")}
                     </strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Scale className="h-4 w-4 text-gray-500" />
                   <span>
-                    Berat:{" "}
+                    {t("seller.weight")}:{" "}
                     <strong className="text-gray-800">
                       {product.weight} gram
                     </strong>
@@ -175,10 +179,10 @@ export default function ProductDetail({
 
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">
-                  Deskripsi Produk
+                  {t("seller.description")}
                 </h3>
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
-                  {product.description || "Tidak ada deskripsi."}
+                  {product.description || "-"}
                 </p>
               </div>
             </div>
@@ -186,7 +190,7 @@ export default function ProductDetail({
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-sm font-semibold text-gray-700">
-                  Jumlah:
+                  {t("seller.stock")}:
                 </span>
                 <div className="flex items-center border rounded-xl overflow-hidden">
                   <button
@@ -209,18 +213,30 @@ export default function ProductDetail({
                 </div>
               </div>
 
-              <button
-                onClick={handleAddToCart}
-                disabled={product.stock === 0}
-                className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition shadow-md ${
-                  product.stock > 0
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {product.stock > 0 ? "+ Tambah ke Keranjang" : "Stok Habis"}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsChatOpen(true)}
+                  className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 rounded-xl transition border shadow-xs"
+                >
+                  <MessageSquare className="h-5 w-5 text-blue-600" />
+                  <span>Chat Penjual</span>
+                </button>
+
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock === 0}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition shadow-md ${
+                    product.stock > 0
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {product.stock > 0
+                    ? `+ ${t("catalog.add_to_cart")}`
+                    : t("catalog.no_products")}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -233,28 +249,39 @@ export default function ProductDetail({
             </div>
             <div>
               <h3 className="font-bold text-gray-800 text-base">
-                {product.seller_profile?.store_name || "Toko Penjual"}
+                {product.seller_profile?.store_name || t("cart.store")}
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Penjual Terverifikasi
+                {t("navbar.seller_badge")}
               </p>
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              const sellerId =
-                typeof product.seller === "object"
-                  ? product.seller.id
-                  : product.seller;
-              onVisitStore(sellerId);
-            }}
-            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold px-5 py-2.5 rounded-xl border transition"
-          >
-            <ExternalLink className="h-4 w-4" /> Kunjungi Toko
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-semibold px-4 py-2.5 rounded-xl border border-blue-200 transition"
+            >
+              <MessageSquare className="h-4 w-4" /> Chat Penjual
+            </button>
+            <button
+              onClick={() => onVisitStore(sellerId)}
+              className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold px-5 py-2.5 rounded-xl border transition"
+            >
+              <ExternalLink className="h-4 w-4" /> {t("seller.title")}
+            </button>
+          </div>
         </div>
       </main>
+
+      {/* Floating Chat Modal */}
+      <ChatModal
+        user={user}
+        sellerId={sellerId}
+        storeName={product.seller_profile?.store_name}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
     </div>
   );
 }

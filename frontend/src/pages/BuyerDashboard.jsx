@@ -9,6 +9,7 @@ export default function BuyerDashboard({
   user,
   onLogout,
   onNavigateToSeller,
+  onNavigateToApplyStore,
   onSelectProduct,
   onOpenCart,
 }) {
@@ -62,6 +63,7 @@ export default function BuyerDashboard({
         onLogout={onLogout}
         cartCount={calculateTotalItems()}
         onNavigateToSeller={onNavigateToSeller}
+        onNavigateToApplyStore={onNavigateToApplyStore}
         onOpenCart={onOpenCart}
         onOpenOrders={() => setActiveTab("orders")}
       />

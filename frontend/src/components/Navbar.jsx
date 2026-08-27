@@ -10,12 +10,14 @@ import {
   ChevronDown,
   Package,
   Globe,
+  PlusCircle,
 } from "lucide-react";
 
 export default function Navbar({
   user,
   onLogout,
   onNavigateToSeller,
+  onNavigateToApplyStore,
   onOpenCart,
   onOpenOrders,
   cartCount = 0,
@@ -125,17 +127,28 @@ export default function Navbar({
                     {t("navbar.my_orders")}
                   </button>
 
-                  {/* Tombol Toko Saya untuk Seller */}
-                  {isSeller && (
+                  {/* Tombol Toko Saya (jika Seller) ATAU Daftar Toko (jika Buyer) */}
+                  {isSeller ? (
                     <button
                       onClick={() => {
                         setDropdownOpen(false);
-                        onNavigateToSeller();
+                        if (onNavigateToSeller) onNavigateToSeller();
                       }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 font-medium transition"
                     >
                       <Store className="h-4 w-4" />
                       {t("navbar.my_store")}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        if (onNavigateToApplyStore) onNavigateToApplyStore();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-600 hover:bg-emerald-50 font-medium transition"
+                    >
+                      <PlusCircle className="h-4 w-4 text-emerald-600" />
+                      Daftar / Status Toko
                     </button>
                   )}
 

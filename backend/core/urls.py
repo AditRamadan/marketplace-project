@@ -4,7 +4,16 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from accounts.views import RegisterView, ActivateSellerView, GoogleLoginView, CustomTokenObtainPairView
+# 1. TAMBAHKAN VIEW Pendaftaran Toko & Admin di sini
+from accounts.views import (
+    RegisterView, 
+    ActivateSellerView, 
+    GoogleLoginView, 
+    CustomTokenObtainPairView,
+    ApplyStoreView,
+    AdminStoreApplicationsView,
+    AdminReviewStoreApplicationView
+)
 from products.views import ProductListCreateView, ProductDetailView, CategoryListView, SellerProductListView, PublicStoreDetailView
 from orders.views import CheckoutView, CartView, SellerOrderListView, ProcessShippingView, BuyerOrderListView, CompleteOrderView
 from payments.views import CreatePaymentView, MidtransWebhookView, UploadPaymentProofView, ReviewPaymentProofView, CheckPaymentStatusView
@@ -21,11 +30,16 @@ urlpatterns = [
     path('api/auth/activate-seller/', ActivateSellerView.as_view()),
     path('api/auth/google/', GoogleLoginView.as_view(), name='google_login'),
 
+    # 2. ENDPOINT PENDAFTARAN TOKO (BUYER) & ADMIN APPROVAL
+    path('api/accounts/apply-store/', ApplyStoreView.as_view()),
+    path('api/accounts/admin/applications/', AdminStoreApplicationsView.as_view()),
+    path('api/accounts/admin/applications/<int:application_id>/review/', AdminReviewStoreApplicationView.as_view()),
+
     # Products & Categories
     path('api/categories/', CategoryListView.as_view()),
     path('api/products/', ProductListCreateView.as_view()),
     path('api/products/<int:pk>/', ProductDetailView.as_view()),
-    path('api/seller/products/', SellerProductListView.as_view()), # <-- Endpoint Produk Seller
+    path('api/seller/products/', SellerProductListView.as_view()),
     path('api/stores/<int:seller_id>/', PublicStoreDetailView.as_view()),
 
     # Cart & Checkout

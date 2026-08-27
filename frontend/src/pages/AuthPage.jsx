@@ -38,8 +38,17 @@ export default function AuthPage({ onLoginSuccess }) {
           email: formData.email,
           password: formData.password,
         });
-        localStorage.setItem("access_token", response.data.access);
-        localStorage.setItem("refresh_token", response.data.refresh);
+
+        const accessToken = response.data.access;
+        const refreshToken = response.data.refresh;
+        const userData = response.data.user;
+
+        localStorage.setItem("access_token", accessToken);
+        localStorage.setItem("refresh_token", refreshToken);
+        if (userData) {
+          localStorage.setItem("user_data", JSON.stringify(userData));
+        }
+
         setSuccessMsg("Login berhasil! Dialihkan...");
         if (onLoginSuccess) onLoginSuccess(response.data);
       } else {
@@ -66,15 +75,14 @@ export default function AuthPage({ onLoginSuccess }) {
   };
 
   // Handler Sukses Login Google
-  // Handler Sukses Login Google
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
     try {
       const response = await authApi.googleLogin(credentialResponse.credential);
 
-      // Simpan token & data user ke localStorage
       localStorage.setItem("access_token", response.data.access);
-      localStorage.setItem("user_data", JSON.stringify(response.data.user)); // <--- SIMPAN USER DATA
+      localStorage.setItem("refresh_token", response.data.refresh);
+      localStorage.setItem("user_data", JSON.stringify(response.data.user));
 
       if (onLoginSuccess) {
         onLoginSuccess(response.data.user);

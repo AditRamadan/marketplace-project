@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import axiosClient from "../api/axiosClient";
 import Navbar from "../components/Navbar";
 import BuyerOrdersPage from "./BuyerOrdersPage";
+import BuyerChatPage from "./BuyerChatPage"; // Import BuyerChatPage
 
 export default function BuyerDashboard({
   user,
@@ -66,6 +67,7 @@ export default function BuyerDashboard({
         onNavigateToApplyStore={onNavigateToApplyStore}
         onOpenCart={onOpenCart}
         onOpenOrders={() => setActiveTab("orders")}
+        onOpenChats={() => setActiveTab("chats")} // Dihubungkan ke tab chats
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -96,6 +98,8 @@ export default function BuyerDashboard({
         {/* Dynamic Content View */}
         {activeTab === "orders" ? (
           <BuyerOrdersPage />
+        ) : activeTab === "chats" ? (
+          <BuyerChatPage user={user} />
         ) : (
           <>
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 md:p-8 text-white mb-8 shadow-md">

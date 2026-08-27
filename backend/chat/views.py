@@ -94,3 +94,41 @@ class SellerConversationsView(APIView):
                 'last_message_time': str(last_msg.timestamp) if last_msg else str(conv.created_at),
             })
         return Response(data, status=status.HTTP_200_OK)
+
+
+class BuyerConversationsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Ambil semua percakapan di mana user bertindak sebagai buyer
+        conversations = Conversation.objects.filter(buyer=request.user).order_by('-created_at')
+        
+        data = []
+        for conv in conversations:
+            last_msg = conv.messages.order_by('-timestamp').first()
+            seller = conv.seller
+            
+            # Mencari Nama Toko dari berbagai kemungkinan nama relasi di Django Model Toko/Store
+            store_name = None
+            
+            # Pengecekan 1: Mengambil dari atribut/relasi toko pada User
+            for attr in ['store', 'store_profile', 'seller_profile', 'tokoprofile']:
+                if hasattr(seller, attr):
+                    store_obj = getattr(seller, attr)
+                    if store_obj:
+                        store_name = getattr(store_obj, 'name', None) or getattr(store_obj, 'store_name', None)
+                        if store_name:
+                            break
+
+            # Pengecekan 2: Jika relasi tidak ditemukan secara langsung, gunakan fallback username/email
+            display_name = store_name or seller.username or seller.email
+
+            data.append({
+                'conversation_id': conv.id,
+                'seller_id': seller.id,
+                'seller_name': display_name,
+                'store_name': store_name,
+                'last_message': last_msg.text if last_msg else '',
+                'last_message_time': str(last_msg.timestamp) if last_msg else str(conv.created_at),
+            })
+        return Response(data, status=status.HTTP_200_OK)

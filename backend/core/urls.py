@@ -17,7 +17,7 @@ from accounts.views import (
 from products.views import ProductListCreateView, ProductDetailView, CategoryListView, SellerProductListView, PublicStoreDetailView
 from orders.views import CheckoutView, CartView, SellerOrderListView, ProcessShippingView, BuyerOrderListView, CompleteOrderView
 from payments.views import CreatePaymentView, MidtransWebhookView, UploadPaymentProofView, ReviewPaymentProofView, CheckPaymentStatusView
-from chat.views import GetOrCreateConversationView, ConversationMessagesView, SellerConversationsView
+from chat.views import GetOrCreateConversationView, ConversationMessagesView, SellerConversationsView, BuyerConversationsView
 
 
 urlpatterns = [
@@ -66,6 +66,7 @@ urlpatterns = [
     path('api/chat/conversation/', GetOrCreateConversationView.as_view()),
     path('api/chat/conversation/<int:conversation_id>/messages/', ConversationMessagesView.as_view()),
     path('api/seller/chats/', SellerConversationsView.as_view()),
+    path('api/buyer/chats/', BuyerConversationsView.as_view()),
 ]
 
 if settings.DEBUG:

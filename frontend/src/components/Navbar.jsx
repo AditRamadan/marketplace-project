@@ -11,6 +11,7 @@ import {
   Package,
   Globe,
   PlusCircle,
+  MessageSquare, // Added MessageSquare Icon
 } from "lucide-react";
 
 export default function Navbar({
@@ -20,6 +21,7 @@ export default function Navbar({
   onNavigateToApplyStore,
   onOpenCart,
   onOpenOrders,
+  onOpenChats, // Added prop for opening chat
   cartCount = 0,
 }) {
   const { t, i18n } = useTranslation();
@@ -65,10 +67,20 @@ export default function Navbar({
               <span>{i18n.language === "en" ? "EN" : "ID"}</span>
             </button>
 
+            {/* Tombol Chat Menu di Navbar Header */}
+            <button
+              onClick={onOpenChats}
+              className="relative p-2 text-gray-600 hover:text-blue-600 transition"
+              title="Pesan Saya / Chat"
+            >
+              <MessageSquare className="h-6 w-6" />
+            </button>
+
             {/* Keranjang Belanja */}
             <button
               onClick={onOpenCart}
               className="relative p-2 text-gray-600 hover:text-blue-600 transition"
+              title="Keranjang Belanja"
             >
               <ShoppingCart className="h-6 w-6" />
               {cartCount > 0 && (
@@ -115,7 +127,7 @@ export default function Navbar({
                     </span>
                   </div>
 
-                  {/* Tombol Pesanan Saya untuk Pembeli */}
+                  {/* Tombol Pesanan Saya */}
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
@@ -127,7 +139,19 @@ export default function Navbar({
                     {t("navbar.my_orders")}
                   </button>
 
-                  {/* Tombol Toko Saya (jika Seller) ATAU Daftar Toko (jika Buyer) */}
+                  {/* Tombol Pesan Saya di Dropdown */}
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      if (onOpenChats) onOpenChats();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 font-medium transition"
+                  >
+                    <MessageSquare className="h-4 w-4 text-gray-500" />
+                    <span>Pesan Saya</span>
+                  </button>
+
+                  {/* Tombol Toko Saya / Daftar Toko */}
                   {isSeller ? (
                     <button
                       onClick={() => {
